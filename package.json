@@ -6,8 +6,13 @@
   "scripts": {
     "build": "tsc"
   },
-  "dependencies": {},
+  "dependencies": {
+    "playwright": "^1.41.1",
+    "yargs": "^17.7.2"
+  },
   "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/yargs": "^17.0.33",
     "typescript": "^5.5.3"
   },
   "private": true
