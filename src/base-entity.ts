@@ -1,18 +1,16 @@
-export interface IBaseEntity {
-    fields: {
-        [key: string]: string | number
-    };
+export interface IBaseEntity<T> {
+    fields: T;
 
     collected: {
         date: string
     };
 }
 
-export class BaseEntity implements IBaseEntity {
-    fields: IBaseEntity["fields"];
-    collected: IBaseEntity["collected"];
+export class BaseEntity<T> implements IBaseEntity<T> {
+    fields: T;
+    collected: IBaseEntity<T>["collected"];
 
-    constructor(fields: { [key: string]: string | number }) {
+    constructor(fields: T) {
         this.fields = fields;
         this.collected = {
             date: BaseEntity.formatDate(new Date()),

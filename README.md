@@ -15,26 +15,51 @@
 ### Creating a New Extractor
 
 To add a new extractor:
-
-1. Create a file in `src/` with a name and content similar to `git-hubExtractor.ts`.
-2. Define an extractor class that extends `BaseExtractor` and implement the `parseEntity` method for data extraction.
+1. Create a new folder in `extractors/` with a name corresponding to your extractor (e.g., `github-extractor`).
+2. Inside this folder, create an `index.ts` file.
+3. Optionally, create a `types.ts` file to define any TypeScript interfaces or types related to your extractor for better organization.
 
 ### Example Extractor
 
-```typescript
-import {BaseExtractor} from './baseExtractor';
-import {BaseEntity} from './baseEntity';
-import {ElementHandle} from 'playwright';
+`types.ts` (inside extractors/github-extractor/):
 
-class RepositoryEntity extends BaseEntity {
+```typescript
+import {BaseEntity, IBaseEntity} from "../../src/base-entity";
+
+interface IRepositoryFields {
+    title: string;
+    url: string;
+    description: string;
+    language: string;
+    countAllStars: number;
+    countStarsToday: number;
+    countForks: number;
 }
 
-export default class GitHubExtractor extends BaseExtractor<RepositoryEntity> {
+interface IRepositoryEntity extends IBaseEntity<IRepositoryFields> {
+    fields: IRepositoryFields;
+}
+
+export default class RepositoryEntity extends BaseEntity<IRepositoryFields> implements IRepositoryEntity {
+    fields: IRepositoryFields;
+
+    constructor(fields: IRepositoryFields) {
+        super(fields);
+        this.fields = fields;
+    }
+}
+```
+
+`index.ts` (inside extractors/github-extractor/):
+
+```typescript
+import {BaseExtractor} from "../../src/base-extractor";
+import {ElementHandle, Page} from "playwright";
+import RepositoryEntity from "./types";
+
+export default class GithubExtractor extends BaseExtractor<RepositoryEntity> {
     domain = 'github.com';
     waitSelector = '.Box-row';
-    pager = {
-        end: '.footer',
-    };
 
     async parseEntity(element: ElementHandle): Promise<RepositoryEntity> {
         // Logic to extract data
@@ -46,5 +71,5 @@ export default class GitHubExtractor extends BaseExtractor<RepositoryEntity> {
 
 ```bash
   npm run build
-  node dist/index.js --extractor github-extractor --urls https://github.com/trending
+  node dist/src/index.js --extractor github-extractor --urls https://github.com/trending
 ```
