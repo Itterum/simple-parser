@@ -54,7 +54,7 @@ async function runExtractor<T extends BaseEntity<U>, U>(
     const urls: string[] = argv.urls;
     const extractorName: string = argv.extractor;
 
-    const extractorDir = path.join(__dirname, `../extractors`);
+    const extractorDir = path.join(__dirname, `./extractors`);
 
     let extractorFilePath: string | null = null;
 
@@ -62,7 +62,7 @@ async function runExtractor<T extends BaseEntity<U>, U>(
 
     for (const dir of directories) {
         if (dir.isDirectory()) {
-            const potentialPath = path.join(extractorDir, dir.name, "index.js");
+            const potentialPath = path.join(extractorDir, dir.name, "index.*.js");
             if (dir.name === extractorName && fs.existsSync(potentialPath)) {
                 extractorFilePath = potentialPath;
                 break;
@@ -75,7 +75,7 @@ async function runExtractor<T extends BaseEntity<U>, U>(
         return;
     }
 
-    const extractorModule = await import(extractorFilePath);
+    const extractorModule = await import(/* webpackIgnore: true */ extractorFilePath);
     const extractorInstance = new extractorModule.default();
 
     await runExtractor(urls, extractorInstance, extractorName);
