@@ -1,4 +1,4 @@
-import {chromium, ElementHandle, Page} from "playwright";
+import {Browser, chromium, ElementHandle, Page} from "playwright";
 
 interface IExtractor<T> {
     waitSelector: string;
@@ -7,6 +7,8 @@ interface IExtractor<T> {
     parseEntity(element: ElementHandle): Promise<T>;
 
     setupPage(page: Page, blockedResources: string[]): Promise<void>;
+
+    launchBrowser(headless: boolean, proxy?: string): Promise<Browser>;
 
     parsePage(url: string, options?: { headless?: boolean; proxy?: string }): Promise<T[]>;
 
@@ -21,17 +23,27 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
 
     abstract parseEntity(element: ElementHandle): Promise<T>
 
-    async setupPage(page: Page, blockedResources: string[] = ["png", "jpeg", "jpg", "svg"]): Promise<void> {
-        await page.route(new RegExp(`(${blockedResources.join("|")})$`), (route) => route.abort());
+    async setupPage(page: Page, blockedResources: string[] = ["image", "stylesheet", "font"]): Promise<void> {
+        await page.route("**/*", (route) => {
+            const resource = route.request().resourceType();
+            if (blockedResources.includes(resource)) {
+                route.abort();
+            } else {
+                route.continue();
+            }
+        });
     }
 
-    async parsePage(url: string, options: { headless?: boolean; proxy?: string } = {headless: true}): Promise<T[]> {
-        const browser = await chromium.launch({headless: options.headless});
-        const page = await browser.newPage();
+    async launchBrowser(headless?: boolean, proxy?: string): Promise<Browser> {
+        const browserOptions = proxy
+            ? {headless, proxy: {server: proxy}}
+            : {headless};
+        return chromium.launch(browserOptions);
+    }
 
-        if (options.proxy) {
-            await page.setExtraHTTPHeaders({"X-Proxy": options.proxy});
-        }
+    async parsePage(url: string, options: { headless?: boolean; proxy?: string }): Promise<T[]> {
+        const browser = await this.launchBrowser(options.headless, options.proxy);
+        const page = await browser.newPage();
 
         try {
             await this.setupPage(page);
@@ -43,7 +55,7 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
 
             return await Promise.all(elements.map(element => this.parseEntity(element)));
         } catch (error) {
-            console.error(error);
+            console.error("Error during page parsing:", error);
             return [];
         } finally {
             await page.close();
@@ -64,14 +76,14 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
         });
     }
 
-    async scrollToEnd(page: Page): Promise<void> {
+    async scrollToEnd(page: Page, maxAttempts: number = 10, delayMs: number = 2000): Promise<void> {
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-        for (let i = 0; i < 10; i++) {
-            const previousHeight = await page.evaluate("document.body.scrollHeight");
+        for (let i = 0; i < maxAttempts; i++) {
+            const previousHeight = await page.evaluate(() => document.body.scrollHeight);
             await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-            await delay(2000);
-            const newHeight = await page.evaluate("document.body.scrollHeight");
+            await delay(delayMs);
+            const newHeight = await page.evaluate(() => document.body.scrollHeight);
             if (newHeight === previousHeight) break;
         }
     }
