@@ -8,6 +8,8 @@ import * as fs from "node:fs";
 interface Argv {
     extractor: string;
     urls: string[];
+    headless: boolean;
+    proxy: string;
 }
 
 const argv: Argv = yargs(hideBin(process.argv))
@@ -23,19 +25,31 @@ const argv: Argv = yargs(hideBin(process.argv))
         description: "List of URLs to extract data from",
         demandOption: true,
     })
+    .option("headless", {
+        alias: "h",
+        type: "boolean",
+        description: "Run headless browser",
+        default: false,
+    })
+    .option("proxy", {
+        alias: "p",
+        type: "string",
+        description: "Parse with proxy",
+    })
     .help()
     .argv as Argv;
 
 async function runExtractor<T extends BaseEntity<U>, U>(
     urls: string[],
     extractor: BaseExtractor<T>,
-    extractorName: string
+    extractorName: string,
+    options: { headless?: boolean; proxy?: string }
 ): Promise<void> {
     try {
         let data = [];
 
         for (const url of urls) {
-            const result: T[] = await extractor.parsePage(url);
+            const result: T[] = await extractor.parsePage(url, options);
             const transformedResult = result.map(item => item.getInfo());
 
             data.push(...transformedResult);
@@ -53,6 +67,10 @@ async function runExtractor<T extends BaseEntity<U>, U>(
 (async () => {
     const urls: string[] = argv.urls;
     const extractorName: string = argv.extractor;
+    const options = {
+        headless: argv.headless,
+        proxy: argv.proxy,
+    };
 
     const extractorDir = path.join(__dirname, `../extractors`);
 
@@ -78,5 +96,5 @@ async function runExtractor<T extends BaseEntity<U>, U>(
     const extractorModule = await import(extractorFilePath);
     const extractorInstance = new extractorModule.default();
 
-    await runExtractor(urls, extractorInstance, extractorName);
+    await runExtractor(urls, extractorInstance, extractorName, options);
 })();
