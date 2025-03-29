@@ -1,4 +1,4 @@
-import {BaseEntity, IBaseEntity} from "../../src/base-entity";
+import { BaseEntity, IBaseEntity } from "../../src/base-entity";
 
 interface IRepositoryFields {
     title: string;

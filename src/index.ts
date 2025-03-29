@@ -1,9 +1,8 @@
-import {BaseEntity} from "./base-entity";
-import {BaseExtractor} from "./base-extractor";
+import { argv } from 'bun';
+import { existsSync } from "fs";
 import path from "path";
-import yargs from "yargs/yargs";
-import {hideBin} from "yargs/helpers";
-import * as fs from "node:fs";
+import { BaseEntity } from "./base-entity";
+import { BaseExtractor } from "./base-extractor";
 
 interface Argv {
     extractor: string;
@@ -12,51 +11,42 @@ interface Argv {
     proxy: string;
 }
 
-const argv: Argv = yargs(hideBin(process.argv))
-    .option("extractor", {
-        alias: "e",
-        type: "string",
-        description: "Name of the extractor",
-        demandOption: true,
-    })
-    .option("urls", {
-        alias: "u",
-        type: "array",
-        description: "List of URLs to extract data from",
-        demandOption: true,
-    })
-    .option("headless", {
-        alias: "h",
-        type: "boolean",
-        description: "Run headless browser",
-        default: false,
-    })
-    .option("proxy", {
-        alias: "p",
-        type: "string",
-        description: "Parse with proxy",
-    })
-    .help()
-    .argv as Argv;
+function parseArgs(args: string[]): Argv {
+    const parsed: Partial<Argv> = {};
+
+    args.forEach(arg => {
+        const [key, value] = arg.split("=");
+
+        if (!key.startsWith("--")) return;
+
+        const cleanKey = key.slice(2);
+        if (cleanKey === "urls") {
+            parsed.urls = value ? value.split(",") : [];
+        } else if (cleanKey === "headless") {
+            parsed.headless = value === "true";
+        } else {
+            (parsed as any)[cleanKey] = value;
+        }
+    });
+
+    return parsed as Argv;
+}
+
+const args = parseArgs(argv.slice(2));
+
+if (!args.extractor || !args.urls.length) {
+    console.error("Usage: bun run script.ts --extractor=<name> --urls=<url1,url2,...> [--headless] [--proxy=<proxy>]");
+    process.exit(1);
+}
 
 async function runExtractor<T extends BaseEntity<U>, U>(
-    urls: string[],
-    extractor: BaseExtractor<T>,
-    extractorName: string,
-    options: { headless?: boolean; proxy?: string }
-): Promise<void> {
+    urls: string[], extractor: BaseExtractor<T>, extractorName: string, options: { headless?: boolean; proxy?: string; }
+) {
     try {
-        let data = [];
+        const results = await Promise.all(urls.map(url => extractor.parsePage(url, options)));
+        const data = results.flat().map(item => item.getInfo());
 
-        for (const url of urls) {
-            const result: T[] = await extractor.parsePage(url, options);
-            const transformedResult = result.map(item => item.getInfo());
-
-            data.push(...transformedResult);
-        }
-
-        console.log(`${extractorName} - completed`);
-        console.log(data);
+        console.log(`${extractorName} - Completed`, data);
     } catch (err) {
         console.error("Error:", err);
     } finally {
@@ -65,36 +55,15 @@ async function runExtractor<T extends BaseEntity<U>, U>(
 }
 
 (async () => {
-    const urls: string[] = argv.urls;
-    const extractorName: string = argv.extractor;
-    const options = {
-        headless: argv.headless,
-        proxy: argv.proxy,
-    };
+    const extractorPath = path.join(__dirname, `../extractors`, args.extractor, "index.ts");
 
-    const extractorDir = path.join(__dirname, `../extractors`);
-
-    let extractorFilePath: string | null = null;
-
-    const directories = fs.readdirSync(extractorDir, {withFileTypes: true});
-
-    for (const dir of directories) {
-        if (dir.isDirectory()) {
-            const potentialPath = path.join(extractorDir, dir.name, "index.js");
-            if (dir.name === extractorName && fs.existsSync(potentialPath)) {
-                extractorFilePath = potentialPath;
-                break;
-            }
-        }
+    if (!existsSync(extractorPath)) {
+        console.error(`Extractor "${args.extractor}" not found.`);
+        process.exit(1);
     }
 
-    if (!extractorFilePath) {
-        console.error(`Extractor "${extractorName}" not found.`);
-        return;
-    }
+    const { default: ExtractorClass } = await import(extractorPath);
+    const extractorInstance = new ExtractorClass();
 
-    const extractorModule = await import(extractorFilePath);
-    const extractorInstance = new extractorModule.default();
-
-    await runExtractor(urls, extractorInstance, extractorName, options);
+    await runExtractor(args.urls, extractorInstance, args.extractor, { headless: args.headless, proxy: args.proxy });
 })();

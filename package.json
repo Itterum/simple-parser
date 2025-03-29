@@ -7,13 +7,12 @@
     "build": "tsc"
   },
   "dependencies": {
-    "playwright": "^1.41.1",
-    "yargs": "^17.7.2"
+    "playwright": "1.51.1"
   },
   "devDependencies": {
-    "@types/node": "^20.14.9",
-    "@types/yargs": "^17.0.33",
-    "typescript": "^5.5.3"
+    "@types/node": "22.13.14",
+    "typescript": "5.8.2",
+    "@types/bun": "latest"
   },
   "private": true
 }

@@ -2,7 +2,7 @@ export interface IBaseEntity<T> {
     fields: T;
 
     collected: {
-        date: string
+        date: string;
     };
 }
 

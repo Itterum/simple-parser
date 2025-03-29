@@ -1,5 +1,5 @@
-import {BaseExtractor} from "../../src/base-extractor";
-import {ElementHandle, Page} from "playwright";
+import { ElementHandle, Page } from "playwright";
+import { BaseExtractor } from "../../src/base-extractor";
 import RepositoryEntity from "./types";
 
 export default class GithubExtractor extends BaseExtractor<RepositoryEntity> {

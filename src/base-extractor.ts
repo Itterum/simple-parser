@@ -1,4 +1,4 @@
-import {Browser, chromium, ElementHandle, Page} from "playwright";
+import { Browser, chromium, ElementHandle, Page } from "playwright";
 
 interface IExtractor<T> {
     waitSelector: string;
@@ -8,9 +8,9 @@ interface IExtractor<T> {
 
     setupPage(page: Page, blockedResources: string[]): Promise<void>;
 
-    launchBrowser(headless: boolean, proxy?: string): Promise<Browser>;
+    launchBrowser(headless?: boolean, proxy?: string): Promise<Browser>;
 
-    parsePage(url: string, options?: { headless?: boolean; proxy?: string }): Promise<T[]>;
+    parsePage(url: string, options?: { headless?: boolean; proxy?: string; }): Promise<T[]>;
 
     logRequests(page: Page, proxy: string): Promise<void>;
 
@@ -21,7 +21,7 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
     abstract waitSelector: string;
     abstract domain: string;
 
-    abstract parseEntity(element: ElementHandle): Promise<T>
+    abstract parseEntity(element: ElementHandle): Promise<T>;
 
     async setupPage(page: Page, blockedResources: string[] = ["image", "stylesheet", "font"]): Promise<void> {
         await page.route("**/*", (route) => {
@@ -34,21 +34,21 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
         });
     }
 
-    async launchBrowser(headless?: boolean, proxy?: string): Promise<Browser> {
-        const browserOptions = proxy
-            ? {headless, proxy: {server: proxy}}
-            : {headless};
-        return chromium.launch(browserOptions);
+    async launchBrowser(headless: boolean = true, proxy?: string): Promise<Browser> {
+        return chromium.launch(proxy
+            ? { headless, proxy: { server: proxy } }
+            : { headless }
+        );
     }
 
-    async parsePage(url: string, options: { headless?: boolean; proxy?: string }): Promise<T[]> {
+    async parsePage(url: string, options: { headless?: boolean; proxy?: string; }): Promise<T[]> {
         const browser = await this.launchBrowser(options.headless, options.proxy);
         const page = await browser.newPage();
 
         try {
             await this.setupPage(page);
             await this.logRequests(page);
-            await page.goto(url, {waitUntil: "domcontentloaded"});
+            await page.goto(url, { waitUntil: "domcontentloaded" });
             await page.waitForSelector(this.waitSelector);
 
             const elements = await page.$$(this.waitSelector);
