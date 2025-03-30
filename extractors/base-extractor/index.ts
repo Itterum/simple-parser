@@ -23,7 +23,7 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
 
     abstract parseEntity(element: ElementHandle): Promise<T>;
 
-    async setupPage(page: Page, blockedResources: string[] = ["image", "stylesheet", "font"]): Promise<void> {
+    async setupPage(page: Page, blockedResources: string[] = ["image", "stylesheet", "font", "media", "script"]): Promise<void> {
         await page.route("**/*", (route) => {
             const resource = route.request().resourceType();
             if (blockedResources.includes(resource)) {
@@ -32,13 +32,38 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
                 route.continue();
             }
         });
+
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+            Object.defineProperty(window, 'chrome', { get: () => ({ runtime: {} }) });
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+        });
+
+        await page.exposeFunction("realisticMouseMove", async () => {
+            await page.mouse.move(100, 100, { steps: 20 });
+            await page.mouse.move(300, 200, { steps: 15 });
+        });
+
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send("Network.setUserAgentOverride", {
+            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+        });
+
+        await page.mouse.move(100, 100, { steps: 10 });
+        await page.mouse.move(250, 200, { steps: 15 });
     }
 
     async launchBrowser(headless: boolean = true, proxy?: string): Promise<Browser> {
-        return chromium.launch(proxy
-            ? { headless, proxy: { server: proxy } }
-            : { headless }
-        );
+        return chromium.launch({
+            headless,
+            proxy: proxy ? { server: proxy } : undefined,
+            args: [
+                "--disable-blink-features=AutomationControlled",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage"
+            ],
+        });
     }
 
     async parsePage(url: string, options: { headless?: boolean; proxy?: string; }): Promise<T[]> {

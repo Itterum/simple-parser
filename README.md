@@ -1,3 +1,19 @@
+# temp
+
+To install dependencies:
+
+```bash
+bun install
+```
+
+To run:
+
+```bash
+bun run index.ts
+```
+
+This project was created using `bun init` in bun v1.2.7. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+
 ### Installation
 
 1. **Clone the repository:**
@@ -8,8 +24,8 @@
 
 2. **Install dependencies:**
    ```bash
-   npm install
-   npx playwright install
+   bun install
+   bunx playwright install
    ```
 
 ### Creating a New Extractor
@@ -24,7 +40,7 @@ To add a new extractor:
 `types.ts` (inside extractors/github-extractor/):
 
 ```typescript
-import {BaseEntity, IBaseEntity} from "../../src/base-entity";
+import {BaseEntity, IBaseEntity} from "../base-extractor/types";
 
 interface IRepositoryFields {
     title: string;
@@ -53,7 +69,7 @@ export default class RepositoryEntity extends BaseEntity<IRepositoryFields> impl
 `index.ts` (inside extractors/github-extractor/):
 
 ```typescript
-import {BaseExtractor} from "../../src/base-extractor";
+import {BaseExtractor} from "../base-extractor";
 import {ElementHandle, Page} from "playwright";
 import RepositoryEntity from "./types";
 
@@ -70,6 +86,12 @@ export default class GithubExtractor extends BaseExtractor<RepositoryEntity> {
 ### Running the Project
 
 ```bash
-  npm run build
-  node dist/src/index.js --extractor github-extractor --urls https://github.com/trending
+  bun run build.js
+  node dist/index.js --extractor github-extractor --urls https://github.com/trending
 ```
+
+### Future Support for Bun with Playwright
+
+Bun is rapidly evolving and aims to support more features, including better compatibility with Playwright and other browser automation tools. We are tracking updates to Bun for better Playwright support, which will enable seamless integration for browser automation and extraction tasks directly within the Bun environment.
+
+Until Bun provides full support for Playwright, we recommend using Node.js for the actual browser automation while leveraging Bun for faster bundling and code execution.
