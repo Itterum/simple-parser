@@ -1,9 +1,12 @@
-import {BaseEntity} from "./base-entity";
-import {BaseExtractor} from "./base-extractor";
-import path from "path";
-import yargs from "yargs/yargs";
-import {hideBin} from "yargs/helpers";
+#! /usr/bin/env bun
+
 import * as fs from "node:fs";
+import path from "path";
+import { hideBin } from "yargs/helpers";
+import { pathToFileURL } from 'url';
+import yargs from "yargs/yargs";
+import { BaseExtractor } from "./extractors/base-extractor";
+import { BaseEntity } from "./extractors/base-extractor/types";
 
 interface Argv {
     extractor: string;
@@ -11,6 +14,11 @@ interface Argv {
     headless: boolean;
     proxy: string;
 }
+
+type ExtractorOptions = {
+    headless?: boolean;
+    proxy?: string;
+};
 
 const argv: Argv = yargs(hideBin(process.argv))
     .option("extractor", {
@@ -43,7 +51,7 @@ async function runExtractor<T extends BaseEntity<U>, U>(
     urls: string[],
     extractor: BaseExtractor<T>,
     extractorName: string,
-    options: { headless?: boolean; proxy?: string }
+    options: ExtractorOptions
 ): Promise<void> {
     try {
         let data = [];
@@ -72,29 +80,21 @@ async function runExtractor<T extends BaseEntity<U>, U>(
         proxy: argv.proxy,
     };
 
-    const extractorDir = path.join(__dirname, `../extractors`);
+    const extractorFilePath = path.join(
+        process.cwd(),
+        'dist/extractors',
+        `${extractorName}/index.js`
+    );
 
-    let extractorFilePath: string | null = null;
+    const extractorFileURL = pathToFileURL(extractorFilePath).href;
 
-    const directories = fs.readdirSync(extractorDir, {withFileTypes: true});
-
-    for (const dir of directories) {
-        if (dir.isDirectory()) {
-            const potentialPath = path.join(extractorDir, dir.name, "index.js");
-            if (dir.name === extractorName && fs.existsSync(potentialPath)) {
-                extractorFilePath = potentialPath;
-                break;
-            }
-        }
-    }
-
-    if (!extractorFilePath) {
-        console.error(`Extractor "${extractorName}" not found.`);
+    if (!fs.existsSync(extractorFilePath)) {
+        console.error(`Extractor "${extractorName}" not found in dist/.`);
         return;
     }
 
-    const extractorModule = await import(extractorFilePath);
-    const extractorInstance = new extractorModule.default();
+    const { default: ExtractorClass } = await import(extractorFileURL);
+    const extractorInstance = new ExtractorClass();
 
     await runExtractor(urls, extractorInstance, extractorName, options);
 })();
