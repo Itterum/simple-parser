@@ -1,20 +1,33 @@
 {
   "name": "simple-parser",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "version": "0.0.0+12",
+  "description": "",
+  "homepage": "https://github.com/Itterum/simple-parser#readme",
+  "bugs": {
+    "url": "https://github.com/Itterum/simple-parser/issues"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Itterum/simple-parser.git"
   },
+  "license": "ISC",
+  "author": "ivan.lyashenko",
+  "type": "commonjs",
+  "main": "dist/index.js",
   "bin": {
-    "app": "./index.ts"
+    "simple-parser": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts"
   },
   "dependencies": {
-    "@types/yargs": "^17.0.33",
-    "playwright": "^1.51.1",
-    "yargs": "^17.7.2"
+    "playwright": "^1.46.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.10.0"
   }
 }

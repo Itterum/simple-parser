@@ -1,97 +1,111 @@
-# temp
+# Simple Parser
 
-To install dependencies:
+A modular extractor framework using **Node.js**, **TypeScript**, and **Playwright**.
+Supports multiple extractors that can be run via CLI.
 
-```bash
-bun install
-```
+---
 
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.7. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
-
-### Installation
+## Installation
 
 1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Itterum/simple-parser
-   cd simple-parser 
-   ```
+```bash
+git clone https://github.com/Itterum/simple-parser
+cd simple-parser
+```
 
 2. **Install dependencies:**
-   ```bash
-   bun install
-   bunx playwright install
-   ```
+```bash
+npm install
+npx playwright install
+```
 
-### Creating a New Extractor
+---
+
+## Running the Project
+
+### Development (TypeScript directly)
+
+```bash
+npm run dev -- --extractor github-extractor --urls https://github.com/trending
+```
+
+### Production (compiled JavaScript)
+
+```bash
+npm run build
+node dist/cli.js --extractor github-extractor --urls https://github.com/trending
+```
+
+---
+
+## Creating a New Extractor
 
 To add a new extractor:
-1. Create a new folder in `extractors/` with a name corresponding to your extractor (e.g., `github-extractor`).
+
+1. Create a new folder in `src/extractors/` with the name of your extractor (e.g., `github`).
 2. Inside this folder, create an `index.ts` file.
-3. Optionally, create a `types.ts` file to define any TypeScript interfaces or types related to your extractor for better organization.
+3. Optionally, create a `types.ts` file to define any TypeScript interfaces or types related to your extractor.
+
+---
 
 ### Example Extractor
 
-`types.ts` (inside extractors/github-extractor/):
+`types.ts` (inside `src/extractors/github/`):
 
-```typescript
-import {BaseEntity, IBaseEntity} from "../base-extractor/types";
+```ts
+import { BaseEntity, IBaseEntity } from "../base/types";
 
 interface IRepositoryFields {
-    title: string;
-    url: string;
-    description: string;
-    language: string;
-    countAllStars: number;
-    countStarsToday: number;
-    countForks: number;
+  title: string;
+  url: string;
+  description: string;
+  language: string;
+  countAllStars: number;
+  countStarsToday: number;
+  countForks: number;
 }
 
-interface IRepositoryEntity extends IBaseEntity<IRepositoryFields> {
-    fields: IRepositoryFields;
+export interface IRepositoryEntity extends IBaseEntity<IRepositoryFields> {
+  fields: IRepositoryFields;
 }
 
-export default class RepositoryEntity extends BaseEntity<IRepositoryFields> implements IRepositoryEntity {
-    fields: IRepositoryFields;
+export class RepositoryEntity extends BaseEntity<IRepositoryFields> implements IRepositoryEntity {
+  fields: IRepositoryFields;
 
-    constructor(fields: IRepositoryFields) {
-        super(fields);
-        this.fields = fields;
-    }
-}
-```
-
-`index.ts` (inside extractors/github-extractor/):
-
-```typescript
-import {BaseExtractor} from "../base-extractor";
-import {ElementHandle, Page} from "playwright";
-import RepositoryEntity from "./types";
-
-export default class GithubExtractor extends BaseExtractor<RepositoryEntity> {
-    domain = 'github.com';
-    waitSelector = '.Box-row';
-
-    async parseEntity(element: ElementHandle): Promise<RepositoryEntity> {
-        // Logic to extract data
-    }
+  constructor(fields: IRepositoryFields) {
+    super(fields);
+    this.fields = fields;
+  }
 }
 ```
 
-### Running the Project
+`index.ts` (inside `src/extractors/github/`):
+
+```ts
+import { BaseExtractor } from "../base";
+import { ElementHandle } from "playwright";
+import { RepositoryEntity } from "./types";
+
+export class GithubExtractor extends BaseExtractor<RepositoryEntity> {
+  domain = "github.com";
+  waitSelector = ".Box-row";
+
+  async parseEntity(element: ElementHandle): Promise<RepositoryEntity> {
+    // Logic to extract data from the element
+  }
+}
+```
+
+---
+
+## CLI Usage
 
 ```bash
-  bun run build.js
-  node dist/index.js --extractor github-extractor --urls https://github.com/trending
+node dist/cli.js --extractor <extractor-name> --urls <url1> <url2>
 ```
 
-### Future Support for Bun with Playwright
+Example:
 
-Bun is rapidly evolving and aims to support more features, including better compatibility with Playwright and other browser automation tools. We are tracking updates to Bun for better Playwright support, which will enable seamless integration for browser automation and extraction tasks directly within the Bun environment.
-
-Until Bun provides full support for Playwright, we recommend using Node.js for the actual browser automation while leveraging Bun for faster bundling and code execution.
+```bash
+node dist/cli.js --extractor github-extractor --urls https://github.com/trending
+```
