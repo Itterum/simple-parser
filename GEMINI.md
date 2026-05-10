@@ -25,5 +25,11 @@ A modular web scraper framework using Playwright and TypeScript. It follows an O
 3. **Logging**: [DONE] Integrated `pino` for structured logging.
 4. **Output Handling**: [DONE] Added `-o, --output` option to save results to JSON files.
 5. **Stealth**: [DONE] Integrated `playwright-extra` and `puppeteer-extra-plugin-stealth` for advanced anti-bot evasion.
-6. **Error Handling**: [IMPROVED] More granular error reporting via `pino`.
+6. **Error Handling**: [DONE] Implemented retry logic with exponential backoff in `BaseExtractor`.
 7. **Types**: [DONE] Refactored CLI argument parsing using `commander`'s built-in type handling.
+8. **Testing**: [DONE] Set up `Jest` and added initial unit tests for core entities.
+
+## Testing
+- **Framework**: `Jest` with `ts-jest`.
+- **Location**: `src/__tests__/`.
+- **Command**: `npm test`.

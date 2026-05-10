@@ -78,34 +78,46 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
 
   async parsePage(
     url: string,
-    options: { headless?: boolean; proxy?: string },
+    options: { headless?: boolean; proxy?: string; retries?: number },
   ): Promise<T[]> {
-    const browser = await this.launchBrowser(options.headless, options.proxy);
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const maxRetries = options.retries ?? 3;
+    let attempt = 0;
 
-    try {
-      await this.setupPage(page);
-      await this.logRequests(page);
-      
-      logger.info({ url }, 'Navigating to URL');
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      await page.waitForSelector(this.waitSelector, { timeout: 30000 });
+    while (attempt <= maxRetries) {
+      const browser = await this.launchBrowser(options.headless, options.proxy);
+      const context = await browser.newContext();
+      const page = await context.newPage();
 
-      const elements = await page.$$(this.waitSelector);
-      logger.info({ count: elements.length }, 'Found entities to parse');
+      try {
+        await this.setupPage(page);
+        await this.logRequests(page);
+        
+        logger.info({ url, attempt }, 'Navigating to URL');
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForSelector(this.waitSelector, { timeout: 30000 });
 
-      return await Promise.all(
-        elements.map((element) => this.parseEntity(element)),
-      );
-    } catch (error) {
-      logger.error({ error, url }, 'Error during page parsing');
-      return [];
-    } finally {
-      await page.close();
-      await context.close();
-      await browser.close();
+        const elements = await page.$$(this.waitSelector);
+        logger.info({ count: elements.length }, 'Found entities to parse');
+
+        return await Promise.all(
+          elements.map((element) => this.parseEntity(element)),
+        );
+      } catch (error) {
+        attempt++;
+        if (attempt > maxRetries) {
+          logger.error({ error, url, attempt }, 'Max retries reached. Error during page parsing');
+          return [];
+        }
+        logger.warn({ error: (error as Error).message, url, attempt }, 'Retrying page parsing...');
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      } finally {
+        await page.close();
+        await context.close();
+        await browser.close();
+      }
     }
+    return [];
   }
 
   async logRequests(page: Page, proxy?: string): Promise<void> {
