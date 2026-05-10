@@ -55,6 +55,33 @@ go run .
 
 The orchestrator will manage the task queue in a SQLite database (`simple-parser.db`).
 
+### Configuration (`tasks.json`)
+
+You can define your scraping tasks in `orchestrator/tasks.json`. This supports both pre-defined extractors and a **Dynamic Extractor** that uses JSON schemas:
+
+```json
+[
+  {
+    "extractor": "github-extractor",
+    "urls": ["https://github.com/trending"]
+  },
+  {
+    "extractor": "dynamic-extractor",
+    "urls": ["https://github.com/trending/javascript"],
+    "schema": {
+      "waitSelector": ".Box-row",
+      "fields": {
+        "title": ".h3",
+        "url": { "selector": ".h3 > a", "attribute": "href" },
+        "description": ".col-9",
+        "language": "[itemprop='programmingLanguage']",
+        "stars": { "selector": "a.Link[href$='/stargazers']", "type": "number" }
+      }
+    }
+  }
+]
+```
+
 ---
 
 ## Creating a New Extractor

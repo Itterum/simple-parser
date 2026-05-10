@@ -12,9 +12,10 @@ import (
 )
 
 type ExtractRequest struct {
-	URL       string `json:"url"`
-	Extractor string `json:"extractor"`
-	Headless  bool   `json:"headless"`
+	URL       string          `json:"url"`
+	Extractor string          `json:"extractor"`
+	Headless  bool            `json:"headless"`
+	Schema    json.RawMessage `json:"schema,omitempty"`
 }
 
 type ExtractResponse struct {
@@ -25,10 +26,16 @@ type ExtractResponse struct {
 }
 
 func processTask(workerURL string, task Task) (*ExtractResponse, error) {
+	var schema json.RawMessage
+	if task.Schema != "" {
+		schema = json.RawMessage(task.Schema)
+	}
+
 	reqBody, err := json.Marshal(ExtractRequest{
 		URL:       task.URL,
 		Extractor: task.ExtractorName,
 		Headless:  true,
+		Schema:    schema,
 	})
 	if err != nil {
 		return nil, err

@@ -1,0 +1,20 @@
+[
+  {
+    "extractor": "github-extractor",
+    "urls": ["https://github.com/trending"]
+  },
+  {
+    "extractor": "dynamic-extractor",
+    "urls": ["https://github.com/trending/javascript"],
+    "schema": {
+      "waitSelector": ".Box-row",
+      "fields": {
+        "title": ".h3",
+        "url": { "selector": ".h3 > a", "attribute": "href" },
+        "description": ".col-9",
+        "language": "[itemprop='programmingLanguage']",
+        "stars": { "selector": "a.Link[href$='/stargazers']", "type": "number" }
+      }
+    }
+  }
+]

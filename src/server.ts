@@ -12,10 +12,11 @@ interface ExtractRequest {
   headless?: boolean;
   proxy?: string;
   retries?: number;
+  schema?: any;
 }
 
 fastify.post('/api/v1/extract', async (request, reply) => {
-  const { url, extractor: extractorName, headless, proxy, retries } = request.body as ExtractRequest;
+  const { url, extractor: extractorName, headless, proxy, retries, schema } = request.body as ExtractRequest;
 
   if (!url || !extractorName) {
     return reply.status(400).send({ error: 'url and extractor are required' });
@@ -35,8 +36,9 @@ fastify.post('/api/v1/extract', async (request, reply) => {
     const data = await extractor.parsePage(url, { 
       headless: headless !== false, // default to headless: true
       proxy, 
-      retries: retries ?? 3 
-    });
+      retries: retries ?? 3,
+      schema
+    } as any);
     
     return { success: true, url, data };
   } catch (err) {
