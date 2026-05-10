@@ -1,7 +1,7 @@
 # Simple Parser
 
-A modular extractor framework using **Node.js**, **TypeScript**, and **Playwright**.
-Supports multiple extractors that can be run via CLI.
+A modular extractor framework using **Node.js**, **TypeScript**, **Playwright**, and **Golang**.
+This project uses a hybrid architecture: Node.js handles browser automation, while Go manages the orchestration and task queue.
 
 ---
 
@@ -13,49 +13,59 @@ git clone https://github.com/Itterum/simple-parser
 cd simple-parser
 ```
 
-2. **Install dependencies:**
+2. **Install Node.js dependencies:**
 ```bash
 npm install
 npx playwright install
+```
+
+3. **Install Go dependencies:**
+```bash
+cd orchestrator
+go mod download
+cd ..
 ```
 
 ---
 
 ## Running the Project
 
-### Development (TypeScript directly)
+### 1. Start the Node.js worker (Browser Engine)
+The Node.js part of the project acts as a stateless worker that performs the actual browser automation.
 
-```bash
-npm run dev -- --extractor github-extractor --urls https://github.com/trending
-```
-
-### Production (compiled JavaScript)
-
-```bash
-npm run build
-node dist/cli.js --extractor github-extractor --urls https://github.com/trending
-```
-
----
-
-## Hybrid Architecture (Go + Node.js)
-
-For high-concurrency tasks, use the Go orchestrator with Node.js workers.
-
-1. **Start the Node.js worker:**
 ```bash
 npm run worker
 ```
 
-2. **Run the Go orchestrator:**
+### 2. Use the Go CLI / Orchestrator
+The Go application is the primary entry point for the project.
+
+#### Orchestrator Mode (Batch processing from `tasks.json`)
 ```bash
 cd orchestrator
 go run .
 ```
 
-The orchestrator will manage the task queue in a SQLite database (`simple-parser.db`).
+#### Single Run Mode (CLI)
+```bash
+cd orchestrator
+go run . --extractor github-extractor --url https://github.com/trending
+```
 
-### Configuration (`tasks.json`)
+---
+
+## CLI Options (Go)
+
+- `--extractor <name>`: Name of the extractor to use.
+- `--url <url>`: URL to parse.
+- `--concurrency <num>`: Number of concurrent tasks (default: `2`).
+- `--config <path>`: Path to the tasks JSON configuration (default: `tasks.json`).
+- `--db <path>`: Path to the SQLite database (default: `simple-parser.db`).
+- `--worker <url>`: Node.js worker URL (default: `http://localhost:3000`).
+
+---
+
+## Configuration (`tasks.json`)
 
 You can define your scraping tasks in `orchestrator/tasks.json`. This supports both pre-defined extractors and a **Dynamic Extractor** that uses JSON schemas:
 
@@ -140,34 +150,4 @@ export class GithubExtractor extends BaseExtractor<RepositoryEntity> {
     // Logic to extract data from the element
   }
 }
-```
-
----
-
-## CLI Usage
-
-```bash
-node dist/cli.js [options]
-```
-
-### Options:
-- `-e, --extractor <type>`: Extractor name (e.g., `github-extractor`)
-- `-u, --urls <urls...>`: List of URLs to parse (space-separated)
-- `-c, --concurrency <number>`: Number of concurrent pages (default: `1`)
-- `-o, --output <path>`: Output file path (JSON)
-- `-r, --retries <number>`: Number of retries for each URL (default: `3`)
-- `--no-headless`: Run browser in non-headless mode
-- `-p, --proxy <proxy>`: Proxy server URL
-- `-h, --help`: Display help for command
-
-### Examples:
-
-**Parse multiple URLs concurrently:**
-```bash
-npm run dev -- -e github-extractor -u https://github.com/trending https://github.com/trending/javascript -c 2
-```
-
-**Save output to a file:**
-```bash
-npm run dev -- -e github-extractor -u https://github.com/trending -o results.json
 ```
