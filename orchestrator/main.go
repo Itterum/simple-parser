@@ -9,6 +9,7 @@ import (
 )
 
 type ConfigTask struct {
+	Name      string          `json:"name"`
 	Extractor string          `json:"extractor"`
 	URLs      []string        `json:"urls"`
 	Schema    json.RawMessage `json:"schema,omitempty"`
@@ -56,6 +57,7 @@ func main() {
 	if *extractorFlag != "" && *urlFlag != "" {
 		log.Printf("Running in Single Extraction mode: %s", *urlFlag)
 		task := Task{
+			TaskKey:       "cli-task",
 			URL:           *urlFlag,
 			ExtractorName: *extractorFlag,
 		}
@@ -84,13 +86,13 @@ func main() {
 			}
 			for _, url := range ct.URLs {
 				var exists bool
-				err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE url = ? AND extractor_name = ?)", url, ct.Extractor).Scan(&exists)
+				err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE task_key = ? AND url = ? AND extractor_name = ?)", ct.Name, url, ct.Extractor).Scan(&exists)
 				if err == nil && !exists {
-					log.Printf("Adding task to queue: %s (%s)", url, ct.Extractor)
-					addTask(db, url, ct.Extractor, schemaStr)
+					log.Printf("Adding task to queue: %s | %s (%s)", ct.Name, url, ct.Extractor)
+					addTask(db, ct.Name, url, ct.Extractor, schemaStr)
 				} else if *refreshFlag {
-					log.Printf("Refreshing task: %s (%s)", url, ct.Extractor)
-					resetTask(db, url, ct.Extractor)
+					log.Printf("Refreshing task: %s | %s (%s)", ct.Name, url, ct.Extractor)
+					resetTask(db, ct.Name, url, ct.Extractor)
 				}
 			}
 		}

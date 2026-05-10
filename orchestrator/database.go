@@ -9,6 +9,7 @@ import (
 
 type Task struct {
 	ID            int
+	TaskKey       string
 	URL           string
 	ExtractorName string
 	Status        string
@@ -29,6 +30,7 @@ func initDB(path string) (*sql.DB, error) {
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS tasks (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		task_key TEXT NOT NULL,
 		url TEXT NOT NULL,
 		extractor_name TEXT NOT NULL,
 		status TEXT DEFAULT 'pending',
@@ -47,13 +49,13 @@ func initDB(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-func addTask(db *sql.DB, url, extractor, schema string) error {
-	_, err := db.Exec("INSERT INTO tasks (url, extractor_name, schema) VALUES (?, ?, ?)", url, extractor, schema)
+func addTask(db *sql.DB, key, url, extractor, schema string) error {
+	_, err := db.Exec("INSERT INTO tasks (task_key, url, extractor_name, schema) VALUES (?, ?, ?, ?)", key, url, extractor, schema)
 	return err
 }
 
 func getPendingTasks(db *sql.DB) ([]Task, error) {
-	rows, err := db.Query("SELECT id, url, extractor_name, schema, retries FROM tasks WHERE status = 'pending'")
+	rows, err := db.Query("SELECT id, task_key, url, extractor_name, schema, retries FROM tasks WHERE status = 'pending'")
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +64,7 @@ func getPendingTasks(db *sql.DB) ([]Task, error) {
 	var tasks []Task
 	for rows.Next() {
 		var t Task
-		if err := rows.Scan(&t.ID, &t.URL, &t.ExtractorName, &t.Schema, &t.Retries); err != nil {
+		if err := rows.Scan(&t.ID, &t.TaskKey, &t.URL, &t.ExtractorName, &t.Schema, &t.Retries); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, t)
@@ -80,7 +82,7 @@ func resetAllTasks(db *sql.DB) error {
 	return err
 }
 
-func resetTask(db *sql.DB, url, extractor string) error {
-	_, err := db.Exec("UPDATE tasks SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE url = ? AND extractor_name = ?", url, extractor)
+func resetTask(db *sql.DB, key, url, extractor string) error {
+	_, err := db.Exec("UPDATE tasks SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE task_key = ? AND url = ? AND extractor_name = ?", key, url, extractor)
 	return err
 }
