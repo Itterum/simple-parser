@@ -1,9 +1,14 @@
 import {
   type Browser,
-  chromium,
   type ElementHandle,
   type Page,
 } from 'playwright';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import logger from '../../utils/logger';
+
+// Use stealth plugin
+chromium.use(StealthPlugin());
 
 interface IExtractor<T> {
   waitSelector: string;
@@ -38,9 +43,9 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
       'stylesheet',
       'font',
       'media',
-      'script',
     ],
   ): Promise<void> {
+    // Block unnecessary resources
     await page.route('**/*', (route) => {
       const resource = route.request().resourceType();
       if (blockedResources.includes(resource)) {
@@ -50,27 +55,7 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
       }
     });
 
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => false });
-      Object.defineProperty(window, 'chrome', {
-        get: () => ({ runtime: {} }),
-      });
-      Object.defineProperty(navigator, 'plugins', {
-        get: () => [1, 2, 3, 4, 5],
-      });
-    });
-
-    await page.exposeFunction('realisticMouseMove', async () => {
-      await page.mouse.move(100, 100, { steps: 20 });
-      await page.mouse.move(300, 200, { steps: 15 });
-    });
-
-    const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Network.setUserAgentOverride', {
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    });
-
+    // Simple mouse movement to simulate human behavior
     await page.mouse.move(100, 100, { steps: 10 });
     await page.mouse.move(250, 200, { steps: 15 });
   }
@@ -93,41 +78,59 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
 
   async parsePage(
     url: string,
-    options: { headless?: boolean; proxy?: string },
+    options: { headless?: boolean; proxy?: string; retries?: number },
   ): Promise<T[]> {
-    const browser = await this.launchBrowser(options.headless, options.proxy);
-    const page = await browser.newPage();
+    const maxRetries = options.retries ?? 3;
+    let attempt = 0;
 
-    try {
-      await this.setupPage(page);
-      await this.logRequests(page);
-      await page.goto(url, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector(this.waitSelector);
+    while (attempt <= maxRetries) {
+      const browser = await this.launchBrowser(options.headless, options.proxy);
+      const context = await browser.newContext();
+      const page = await context.newPage();
 
-      const elements = await page.$$(this.waitSelector);
+      try {
+        await this.setupPage(page);
+        await this.logRequests(page);
+        
+        logger.info({ url, attempt }, 'Navigating to URL');
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForSelector(this.waitSelector, { timeout: 30000 });
 
-      return await Promise.all(
-        elements.map((element) => this.parseEntity(element)),
-      );
-    } catch (error) {
-      console.error('Error during page parsing:', error);
-      return [];
-    } finally {
-      await page.close();
-      await browser.close();
+        const elements = await page.$$(this.waitSelector);
+        logger.info({ count: elements.length }, 'Found entities to parse');
+
+        return await Promise.all(
+          elements.map((element) => this.parseEntity(element)),
+        );
+      } catch (error) {
+        attempt++;
+        if (attempt > maxRetries) {
+          logger.error({ error, url, attempt }, 'Max retries reached. Error during page parsing');
+          return [];
+        }
+        logger.warn({ error: (error as Error).message, url, attempt }, 'Retrying page parsing...');
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      } finally {
+        await page.close();
+        await context.close();
+        await browser.close();
+      }
     }
+    return [];
   }
 
   async logRequests(page: Page, proxy?: string): Promise<void> {
     page.on('request', (request) => {
-      const requestInfo = {
-        url: request.url(),
-        method: request.method(),
-        headers: request.headers(),
-        proxyUsed: proxy,
-      };
-
-      console.log('Request Info:', requestInfo);
+      const resourceType = request.resourceType();
+      if (resourceType === 'document' || resourceType === 'xhr' || resourceType === 'fetch') {
+        logger.debug({ 
+          url: request.url(),
+          method: request.method(),
+          resourceType,
+          proxyUsed: proxy 
+        }, 'Outgoing request');
+      }
     });
   }
 
