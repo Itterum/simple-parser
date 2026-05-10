@@ -4,10 +4,20 @@
 A modular web scraper framework using Playwright and TypeScript. It follows an OOP approach with base classes for extractors and data entities.
 
 ## Architecture
-- **`src/extractors/base/`**: Contains `BaseExtractor` (abstract class) and `BaseEntity`. These provide common functionality like browser launching, page setup (anti-bot), and resource blocking.
-- **`src/extractors/`**: Specific implementations of extractors (e.g., `github`).
-- **`src/cli.ts`**: Entry point for CLI usage.
-- **`src/extractors/extractors.ts`**: Registry of available extractors.
+- **Hybrid Model**: The project uses a Go orchestrator to manage state and Node.js workers for browser automation.
+- **`orchestrator/` (Go)**: Central management.
+  - `database.go`: SQLite schema and operations.
+  - `scheduler.go`: Highly concurrent task distribution via goroutines.
+- **`src/server.ts` (Node.js)**: Stateless HTTP worker.
+  - Exposes `POST /api/v1/extract` to run Playwright extractors.
+- **`src/extractors/base/`**: Base logic for Playwright-based scraping.
+- **`src/extractors/`**: Specific website implementations.
+
+## Interaction Flow
+1. Go orchestrator pulls "pending" tasks from SQLite.
+2. Go sends an HTTP request to the Node.js worker.
+3. Node.js runs Playwright, extracts data, and returns JSON.
+4. Go saves the result and updates the task status in SQLite.
 
 ## Key Conventions
 - **Extractors**: Must extend `BaseExtractor` and implement `parseEntity`.

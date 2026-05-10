@@ -38,6 +38,25 @@ node dist/cli.js --extractor github-extractor --urls https://github.com/trending
 
 ---
 
+## Hybrid Architecture (Go + Node.js)
+
+For high-concurrency tasks, use the Go orchestrator with Node.js workers.
+
+1. **Start the Node.js worker:**
+```bash
+npm run worker
+```
+
+2. **Run the Go orchestrator:**
+```bash
+cd orchestrator
+go run .
+```
+
+The orchestrator will manage the task queue in a SQLite database (`simple-parser.db`).
+
+---
+
 ## Creating a New Extractor
 
 To add a new extractor:

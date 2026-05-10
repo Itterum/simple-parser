@@ -1,0 +1,73 @@
+package main
+
+import (
+	"database/sql"
+	"fmt"
+
+	_ "modernc.org/sqlite"
+)
+
+type Task struct {
+	ID            int
+	URL           string
+	ExtractorName string
+	Status        string
+	Result        string
+	Retries       int
+	CreatedAt     string
+	UpdatedAt     string
+}
+
+func initDB(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+
+	createTableSQL := `
+	CREATE TABLE IF NOT EXISTS tasks (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		url TEXT NOT NULL,
+		extractor_name TEXT NOT NULL,
+		status TEXT DEFAULT 'pending',
+		result TEXT,
+		retries INTEGER DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create table: %w", err)
+	}
+
+	return db, nil
+}
+
+func addTask(db *sql.DB, url, extractor string) error {
+	_, err := db.Exec("INSERT INTO tasks (url, extractor_name) VALUES (?, ?)", url, extractor)
+	return err
+}
+
+func getPendingTasks(db *sql.DB) ([]Task, error) {
+	rows, err := db.Query("SELECT id, url, extractor_name, retries FROM tasks WHERE status = 'pending'")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []Task
+	for rows.Next() {
+		var t Task
+		if err := rows.Scan(&t.ID, &t.URL, &t.ExtractorName, &t.Retries); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, t)
+	}
+	return tasks, nil
+}
+
+func updateTaskStatus(db *sql.DB, id int, status, result string) error {
+	_, err := db.Exec("UPDATE tasks SET status = ?, result = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", status, result, id)
+	return err
+}

@@ -5,12 +5,12 @@
       "url": "https://github.com/bytedance/UI-TARS-desktop",
       "description": "The Open-Source Multimodal AI Agent Stack: Connecting Cutting-Edge AI Models and Agent Infra",
       "language": "TypeScript",
-      "countAllStars": 32000,
+      "countAllStars": 32004,
       "countStarsToday": 656,
       "countForks": 3178
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -19,12 +19,12 @@
       "url": "https://github.com/anthropics/financial-services",
       "description": "",
       "language": "Python",
-      "countAllStars": 18604,
+      "countAllStars": 18613,
       "countStarsToday": 1479,
-      "countForks": 2399
+      "countForks": 2400
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -33,12 +33,12 @@
       "url": "https://github.com/addyosmani/agent-skills",
       "description": "Production-grade engineering skills for AI coding agents.",
       "language": "Shell",
-      "countAllStars": 38257,
+      "countAllStars": 38266,
       "countStarsToday": 1092,
-      "countForks": 4244
+      "countForks": 4245
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -47,12 +47,12 @@
       "url": "https://github.com/CloakHQ/CloakBrowser",
       "description": "Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches. 30/30 tests passed.",
       "language": "Python",
-      "countAllStars": 4530,
+      "countAllStars": 4542,
       "countStarsToday": 567,
-      "countForks": 356
+      "countForks": 359
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -61,12 +61,12 @@
       "url": "https://github.com/HKUDS/AI-Trader",
       "description": "\"AI-Trader: 100% Fully-Automated Agent-Native Trading\"",
       "language": "Python",
-      "countAllStars": 15443,
+      "countAllStars": 15449,
       "countStarsToday": 255,
       "countForks": 2517
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -75,12 +75,12 @@
       "url": "https://github.com/jundot/omlx",
       "description": "LLM inference server with continuous batching & SSD caching for Apple Silicon — managed from the macOS menu bar",
       "language": "Python",
-      "countAllStars": 13216,
+      "countAllStars": 13219,
       "countStarsToday": 187,
       "countForks": 1132
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -89,12 +89,12 @@
       "url": "https://github.com/datawhalechina/easy-vibe",
       "description": "💻 vibe coding 2026 | Your first modern Coding course for beginners to master step by step.",
       "language": "JavaScript",
-      "countAllStars": 9046,
+      "countAllStars": 9053,
       "countStarsToday": 642,
       "countForks": 891
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -103,12 +103,12 @@
       "url": "https://github.com/playcanvas/supersplat",
       "description": "3D Gaussian Splat Editor",
       "language": "TypeScript",
-      "countAllStars": 6724,
+      "countAllStars": 6728,
       "countStarsToday": 604,
       "countForks": 762
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -117,12 +117,12 @@
       "url": "https://github.com/lsdefine/GenericAgent",
       "description": "Self-evolving agent: grows skill tree from 3.3K-line seed, achieving full system control with 6x less token consumption",
       "language": "Python",
-      "countAllStars": 10471,
+      "countAllStars": 10474,
       "countStarsToday": 170,
       "countForks": 1193
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -131,12 +131,12 @@
       "url": "https://github.com/decolua/9router",
       "description": "Unlimited FREE AI coding. Connect Claude Code, Codex, Cursor, Cline, Copilot, Antigravity to FREE Claude/GPT/Gemini via 40+ providers. Auto-fallback, RTK -40% tokens, never hit limits.",
       "language": "JavaScript",
-      "countAllStars": 7173,
+      "countAllStars": 7181,
       "countStarsToday": 806,
-      "countForks": 1231
+      "countForks": 1232
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -145,12 +145,12 @@
       "url": "https://github.com/affaan-m/everything-claude-code",
       "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
       "language": "JavaScript",
-      "countAllStars": 177940,
+      "countAllStars": 177957,
       "countStarsToday": 1011,
-      "countForks": 27487
+      "countForks": 27489
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -159,12 +159,12 @@
       "url": "https://github.com/datawhalechina/hello-agents",
       "description": "📚 《从零开始构建智能体》——从零开始的智能体原理与实践教程",
       "language": "Python",
-      "countAllStars": 46396,
+      "countAllStars": 46398,
       "countStarsToday": 756,
       "countForks": 5590
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -173,12 +173,12 @@
       "url": "https://github.com/datawhalechina/easy-vibe",
       "description": "💻 vibe coding 2026 | Your first modern Coding course for beginners to master step by step.",
       "language": "JavaScript",
-      "countAllStars": 9046,
+      "countAllStars": 9053,
       "countStarsToday": 642,
       "countForks": 891
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -187,12 +187,12 @@
       "url": "https://github.com/decolua/9router",
       "description": "Unlimited FREE AI coding. Connect Claude Code, Codex, Cursor, Cline, Copilot, Antigravity to FREE Claude/GPT/Gemini via 40+ providers. Auto-fallback, RTK -40% tokens, never hit limits.",
       "language": "JavaScript",
-      "countAllStars": 7173,
+      "countAllStars": 7181,
       "countStarsToday": 806,
-      "countForks": 1231
+      "countForks": 1232
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -201,12 +201,12 @@
       "url": "https://github.com/affaan-m/everything-claude-code",
       "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
       "language": "JavaScript",
-      "countAllStars": 177940,
+      "countAllStars": 177957,
       "countStarsToday": 1011,
-      "countForks": 27487
+      "countForks": 27489
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -215,12 +215,12 @@
       "url": "https://github.com/playcanvas/engine",
       "description": "Powerful web graphics runtime built on WebGL, WebGPU, WebXR and glTF",
       "language": "JavaScript",
-      "countAllStars": 15635,
+      "countAllStars": 15636,
       "countStarsToday": 151,
       "countForks": 1868
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -234,7 +234,7 @@
       "countForks": 1593
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -248,7 +248,7 @@
       "countForks": 21134
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -259,10 +259,10 @@
       "language": "JavaScript",
       "countAllStars": 41957,
       "countStarsToday": 30,
-      "countForks": 1491
+      "countForks": 1490
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -276,7 +276,7 @@
       "countForks": 1202
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -285,12 +285,12 @@
       "url": "https://github.com/Haleclipse/CodexDesktop-Rebuild",
       "description": "Codex Desktop App - Cross-platform Rebuild",
       "language": "JavaScript",
-      "countAllStars": 1629,
+      "countAllStars": 1630,
       "countStarsToday": 40,
       "countForks": 124
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -304,7 +304,7 @@
       "countForks": 232
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -313,12 +313,12 @@
       "url": "https://github.com/songquanpeng/one-api",
       "description": "LLM API 管理 & 分发系统，支持 OpenAI、Azure、Anthropic Claude、Google Gemini、DeepSeek、字节豆包、ChatGLM、文心一言、讯飞星火、通义千问、360 智脑、腾讯混元等主流模型，统一 API 适配，可用于 key 管理与二次分发。单可执行文件，提供 Docker 镜像，一键部署，开箱即用。LLM API management & key redistribution system, unifying multiple providers under a single API. Single binary, Docker-ready, with an English UI.",
       "language": "JavaScript",
-      "countAllStars": 33356,
+      "countAllStars": 33357,
       "countStarsToday": 55,
       "countForks": 6357
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -332,7 +332,7 @@
       "countForks": 772
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -346,7 +346,7 @@
       "countForks": 5333
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   },
   {
@@ -360,7 +360,7 @@
       "countForks": 1734
     },
     "collected": {
-      "date": "10-05-2026, 23:12:03"
+      "date": "10-05-2026, 23:29:44"
     }
   }
 ]
