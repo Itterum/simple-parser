@@ -87,21 +87,29 @@ func startScheduler(db *sql.DB, workerURL string, concurrency int) {
 			log.Printf("Processing task %d: %s", t.ID, t.URL)
 			
 			// Mark as processing
-			updateTaskStatus(db, t.ID, "processing", "")
+			if err := updateTaskStatus(db, t.ID, "processing", ""); err != nil {
+				log.Printf("Warning: failed to update status to processing for task %d: %v", t.ID, err)
+			}
 
 			resp, err := processTask(workerURL, t)
 			if err != nil {
 				log.Printf("Error processing task %d: %v", t.ID, err)
-				updateTaskStatus(db, t.ID, "failed", err.Error())
+				if err := updateTaskStatus(db, t.ID, "failed", err.Error()); err != nil {
+					log.Printf("Critical: failed to update status to failed for task %d: %v", t.ID, err)
+				}
 				return
 			}
 
 			if resp.Success {
 				log.Printf("Successfully completed task %d", t.ID)
-				updateTaskStatus(db, t.ID, "completed", string(resp.Data))
+				if err := updateTaskStatus(db, t.ID, "completed", string(resp.Data)); err != nil {
+					log.Printf("Critical: failed to update status to completed for task %d: %v", t.ID, err)
+				}
 			} else {
 				log.Printf("Task %d failed: %s", t.ID, resp.Error)
-				updateTaskStatus(db, t.ID, "failed", resp.Error)
+				if err := updateTaskStatus(db, t.ID, "failed", resp.Error); err != nil {
+					log.Printf("Critical: failed to update status to failed for task %d: %v", t.ID, err)
+				}
 			}
 		}(task)
 	}
