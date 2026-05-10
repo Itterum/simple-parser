@@ -109,6 +109,7 @@ node dist/cli.js [options]
 - `-u, --urls <urls...>`: List of URLs to parse (space-separated)
 - `-c, --concurrency <number>`: Number of concurrent pages (default: `1`)
 - `-o, --output <path>`: Output file path (JSON)
+- `-r, --retries <number>`: Number of retries for each URL (default: `3`)
 - `--no-headless`: Run browser in non-headless mode
 - `-p, --proxy <proxy>`: Proxy server URL
 - `-h, --help`: Display help for command
