@@ -101,11 +101,26 @@ export class GithubExtractor extends BaseExtractor<RepositoryEntity> {
 ## CLI Usage
 
 ```bash
-node dist/cli.js --extractor <extractor-name> --urls <url1> <url2>
+node dist/cli.js [options]
 ```
 
-Example:
+### Options:
+- `-e, --extractor <type>`: Extractor name (e.g., `github-extractor`)
+- `-u, --urls <urls...>`: List of URLs to parse (space-separated)
+- `-c, --concurrency <number>`: Number of concurrent pages (default: `1`)
+- `-o, --output <path>`: Output file path (JSON)
+- `--no-headless`: Run browser in non-headless mode
+- `-p, --proxy <proxy>`: Proxy server URL
+- `-h, --help`: Display help for command
 
+### Examples:
+
+**Parse multiple URLs concurrently:**
 ```bash
-node dist/cli.js --extractor github-extractor --urls https://github.com/trending
+npm run dev -- -e github-extractor -u https://github.com/trending https://github.com/trending/javascript -c 2
+```
+
+**Save output to a file:**
+```bash
+npm run dev -- -e github-extractor -u https://github.com/trending -o results.json
 ```

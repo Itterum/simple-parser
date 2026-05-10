@@ -4,6 +4,7 @@ import {
   type ElementHandle,
   type Page,
 } from 'playwright';
+import logger from '../../utils/logger';
 
 interface IExtractor<T> {
   waitSelector: string;
@@ -110,7 +111,7 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
         elements.map((element) => this.parseEntity(element)),
       );
     } catch (error) {
-      console.error('Error during page parsing:', error);
+      logger.error({ error, url }, 'Error during page parsing');
       return [];
     } finally {
       await page.close();
@@ -127,7 +128,7 @@ export abstract class BaseExtractor<T> implements IExtractor<T> {
         proxyUsed: proxy,
       };
 
-      console.log('Request Info:', requestInfo);
+      logger.debug({ request: requestInfo }, 'Outgoing request');
     });
   }
 
