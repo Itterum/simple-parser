@@ -24,6 +24,6 @@ A modular web scraper framework using Playwright and TypeScript. It follows an O
 2. **Concurrency**: [DONE] Implemented parallel page processing using `p-limit`.
 3. **Logging**: [DONE] Integrated `pino` for structured logging.
 4. **Output Handling**: [DONE] Added `-o, --output` option to save results to JSON files.
-5. **Stealth**: Evaluate `playwright-extra` and `stealth-plugin`.
+5. **Stealth**: [DONE] Integrated `playwright-extra` and `puppeteer-extra-plugin-stealth` for advanced anti-bot evasion.
 6. **Error Handling**: [IMPROVED] More granular error reporting via `pino`.
 7. **Types**: [DONE] Refactored CLI argument parsing using `commander`'s built-in type handling.
