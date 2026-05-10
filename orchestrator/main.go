@@ -34,6 +34,8 @@ func main() {
 	dbPathFlag := flag.String("db", "simple-parser.db", "Path to SQLite database")
 	workerURLFlag := flag.String("worker", "http://localhost:3000", "Node.js worker URL")
 	tasksJSONFlag := flag.String("config", "tasks.json", "Path to tasks JSON config")
+	resetFlag := flag.Bool("reset", false, "Reset all tasks in DB to pending before starting")
+	refreshFlag := flag.Bool("refresh", false, "Reset tasks from tasks.json to pending even if they exist")
 	
 	flag.Parse()
 
@@ -42,6 +44,13 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
+
+	if *resetFlag {
+		log.Println("Resetting all tasks in database to pending...")
+		if err := resetAllTasks(db); err != nil {
+			log.Fatalf("Failed to reset tasks: %v", err)
+		}
+	}
 
 	// Mode 1: Single Run (CLI Mode)
 	if *extractorFlag != "" && *urlFlag != "" {
@@ -79,6 +88,9 @@ func main() {
 				if err == nil && !exists {
 					log.Printf("Adding task to queue: %s (%s)", url, ct.Extractor)
 					addTask(db, url, ct.Extractor, schemaStr)
+				} else if *refreshFlag {
+					log.Printf("Refreshing task: %s (%s)", url, ct.Extractor)
+					resetTask(db, url, ct.Extractor)
 				}
 			}
 		}

@@ -74,3 +74,13 @@ func updateTaskStatus(db *sql.DB, id int, status, result string) error {
 	_, err := db.Exec("UPDATE tasks SET status = ?, result = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", status, result, id)
 	return err
 }
+
+func resetAllTasks(db *sql.DB) error {
+	_, err := db.Exec("UPDATE tasks SET status = 'pending', updated_at = CURRENT_TIMESTAMP")
+	return err
+}
+
+func resetTask(db *sql.DB, url, extractor string) error {
+	_, err := db.Exec("UPDATE tasks SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE url = ? AND extractor_name = ?", url, extractor)
+	return err
+}
