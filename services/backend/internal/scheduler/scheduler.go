@@ -1,4 +1,4 @@
-package main
+package scheduler
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"simple-parser/backend/internal/db"
+	"simple-parser/backend/internal/models"
 	"sync"
 )
 
@@ -25,7 +27,7 @@ type ExtractResponse struct {
 	Error   string          `json:"error"`
 }
 
-func processTask(workerURL string, task Task) (*ExtractResponse, error) {
+func ProcessTask(workerURL string, task models.Task) (*ExtractResponse, error) {
 	var schema json.RawMessage
 	if task.Schema != "" {
 		schema = json.RawMessage(task.Schema)
@@ -60,11 +62,11 @@ func processTask(workerURL string, task Task) (*ExtractResponse, error) {
 	return &extractResp, nil
 }
 
-func startScheduler(db *sql.DB, workerURL string, concurrency int) {
+func StartScheduler(database *sql.DB, workerURL string, concurrency int) {
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, concurrency)
 
-	tasks, err := getPendingTasks(db)
+	tasks, err := db.GetPendingTasks(database)
 	if err != nil {
 		log.Fatalf("Failed to fetch pending tasks: %v", err)
 	}
@@ -80,21 +82,21 @@ func startScheduler(db *sql.DB, workerURL string, concurrency int) {
 		wg.Add(1)
 		semaphore <- struct{}{}
 
-		go func(t Task) {
+		go func(t models.Task) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
 			log.Printf("Processing task %d: %s", t.ID, t.URL)
 			
 			// Mark as processing
-			if err := updateTaskStatus(db, t.ID, "processing", ""); err != nil {
+			if err := db.UpdateTaskStatus(database, t.ID, "processing", ""); err != nil {
 				log.Printf("Warning: failed to update status to processing for task %d: %v", t.ID, err)
 			}
 
-			resp, err := processTask(workerURL, t)
+			resp, err := ProcessTask(workerURL, t)
 			if err != nil {
 				log.Printf("Error processing task %d: %v", t.ID, err)
-				if err := updateTaskStatus(db, t.ID, "failed", err.Error()); err != nil {
+				if err := db.UpdateTaskStatus(database, t.ID, "failed", err.Error()); err != nil {
 					log.Printf("Critical: failed to update status to failed for task %d: %v", t.ID, err)
 				}
 				return
@@ -102,12 +104,12 @@ func startScheduler(db *sql.DB, workerURL string, concurrency int) {
 
 			if resp.Success {
 				log.Printf("Successfully completed task %d", t.ID)
-				if err := updateTaskStatus(db, t.ID, "completed", string(resp.Data)); err != nil {
+				if err := db.UpdateTaskStatus(database, t.ID, "completed", string(resp.Data)); err != nil {
 					log.Printf("Critical: failed to update status to completed for task %d: %v", t.ID, err)
 				}
 			} else {
 				log.Printf("Task %d failed: %s", t.ID, resp.Error)
-				if err := updateTaskStatus(db, t.ID, "failed", resp.Error); err != nil {
+				if err := db.UpdateTaskStatus(database, t.ID, "failed", resp.Error); err != nil {
 					log.Printf("Critical: failed to update status to failed for task %d: %v", t.ID, err)
 				}
 			}

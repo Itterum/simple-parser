@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Simple Parser Dashboard</title>
+        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+        <style>
+            :root {
+                --primary: #2563eb;
+                --success: #16a34a;
+                --warning: #ca8a04;
+                --danger: #dc2626;
+                --background: #f8fafc;
+                --surface: #ffffff;
+                --text: #1e293b;
+                --modal-overlay: rgba(15, 23, 42, 0.75);
+            }
+            body {
+                font-family: 'Inter', -apple-system, sans-serif;
+                margin: 0;
+                background-color: var(--background);
+                color: var(--text);
+                padding: 40px 20px;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+            }
+            .user-info {
+                font-size: 0.9rem;
+                color: #64748b;
+            }
+            .logout-link {
+                color: var(--danger);
+                text-decoration: none;
+                margin-left: 10px;
+                font-weight: 600;
+            }
+
+            /* Metrics Cards */
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            .metric-card {
+                background: var(--surface);
+                padding: 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                border: 1px solid #e2e8f0;
+            }
+            .metric-label {
+                font-size: 0.875rem;
+                color: #64748b;
+                margin-bottom: 0.5rem;
+            }
+            .metric-value {
+                font-size: 1.5rem;
+                font-weight: 700;
+            }
+
+            /* Actions */
+            .actions-bar {
+                display: flex;
+                gap: 1rem;
+                margin-bottom: 2rem;
+            }
+            button {
+                padding: 0.625rem 1.25rem;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+                transition: all 0.2s;
+            }
+            .btn-primary { background: var(--primary); color: white; }
+            .btn-primary:hover { background: #1d4ed8; }
+            .btn-secondary { background: #e2e8f0; color: #475569; }
+            .btn-secondary:hover { background: #cbd5e1; }
+            .btn-danger { background: #fef2f2; color: var(--danger); border: 1px solid #fee2e2; }
+            .btn-danger:hover { background: #fee2e2; }
+
+            /* Table */
+            .table-container {
+                background: var(--surface);
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                border: 1px solid #e2e8f0;
+                overflow: hidden;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th {
+                background: #f8fafc;
+                text-align: left;
+                padding: 1rem;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #64748b;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            td {
+                padding: 1rem;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 0.875rem;
+            }
+            tr:last-child td { border-bottom: none; }
+            
+            .status {
+                padding: 0.25rem 0.625rem;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: capitalize;
+            }
+            .status-pending { background: #fefce8; color: #854d0e; }
+            .status-processing { background: #eff6ff; color: #1e40af; }
+            .status-completed { background: #f0fdf4; color: #166534; }
+            .status-failed { background: #fef2f2; color: #991b1b; }
+
+            .result-preview {
+                max-width: 250px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-family: monospace;
+                background: #f8fafc;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            .result-preview:hover { background: #f1f5f9; }
+
+            /* Modal Styles */
+            #modal {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: var(--modal-overlay);
+                z-index: 1000;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                backdrop-filter: blur(4px);
+            }
+            .modal-content {
+                background: var(--surface);
+                width: 100%;
+                max-width: 900px;
+                max-height: 85vh;
+                border-radius: 20px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                overflow: hidden;
+                border: 1px solid #e2e8f0;
+            }
+            .modal-header {
+                padding: 1.5rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #f8fafc;
+            }
+            .modal-title {
+                font-weight: 700;
+                font-size: 1.125rem;
+                color: var(--text);
+            }
+            .close-modal {
+                background: #edf2f7;
+                border: none;
+                font-size: 1.25rem;
+                color: #64748b;
+                cursor: pointer;
+                padding: 0.4rem 0.8rem;
+                border-radius: 8px;
+                line-height: 1;
+                transition: all 0.2s;
+            }
+            .close-modal:hover {
+                background: #e2e8f0;
+                color: var(--danger);
+            }
+            .modal-body {
+                padding: 1.5rem;
+                overflow-y: auto;
+                background: var(--surface);
+                flex: 1;
+            }
+            .json-tree {
+                font-family: 'JetBrains Mono', 'Fira Code', monospace;
+                font-size: 0.875rem;
+                line-height: 1.6;
+                white-space: pre-wrap;
+                word-break: break-all;
+                color: #334155;
+                background: #f1f5f9;
+                padding: 1.5rem;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+                margin: 0;
+            }
+
+            /* Loading state */
+            .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+            .htmx-request .htmx-indicator { opacity: 1; }
+            .htmx-request.btn-primary { opacity: 0.7; pointer-events: none; }
+        </style>
+    </head>
+    <body hx-get="/" hx-trigger="tasksUpdated from:body" hx-select=".container" hx-target=".container" hx-swap="outerHTML">
+        <div class="container">
+            <header>
+                <h1>Parser Dashboard</h1>
+                <div class="user-info">
+                    Welcome, <strong>{{.Username}}</strong>!
+                    <a href="/logout" class="logout-link">Logout</a>
+                </div>
+            </header>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Tasks</div>
+                    <div class="metric-value">{{.Metrics.TotalTasks}}</div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid var(--primary)">
+                    <div class="metric-label">Pending</div>
+                    <div class="metric-value">{{.Metrics.PendingTasks}}</div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid var(--success)">
+                    <div class="metric-label">Completed</div>
+                    <div class="metric-value">{{.Metrics.CompletedTasks}}</div>
+                </div>
+                <div class="metric-card" style="border-left: 4px solid var(--danger)">
+                    <div class="metric-label">Failed</div>
+                    <div class="metric-value">{{.Metrics.FailedTasks}}</div>
+                </div>
+            </div>
+
+            <div class="actions-bar">
+                <button class="btn-primary" 
+                        hx-post="/run" 
+                        hx-indicator="#run-indicator">
+                    Run Pending Tasks
+                    <span id="run-indicator" class="htmx-indicator">...</span>
+                </button>
+                <button class="btn-danger" hx-post="/reset-failed">
+                    Reset Failed Tasks
+                </button>
+                <button class="btn-secondary" hx-get="/" hx-target=".container" hx-select=".container" hx-swap="outerHTML">
+                    Refresh
+                </button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Task Key</th>
+                            <th>URL</th>
+                            <th>Extractor</th>
+                            <th>Status</th>
+                            <th>Result Preview</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Tasks}}
+                        <tr>
+                            <td>#{{.ID}}</td>
+                            <td><strong>{{.TaskKey}}</strong></td>
+                            <td><a href="{{.URL}}" target="_blank" style="color: var(--primary); text-decoration: none;">{{.URL}}</a></td>
+                            <td>{{.ExtractorName}}</td>
+                            <td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+                            <td>
+                                {{if .Result}}
+                                <div class="result-preview" onclick="showData('{{.TaskKey}}', this.innerText)">{{.ResultString}}</div>
+                                {{else}}-{{end}}
+                            </td>
+                            <td style="color: #64748b; font-size: 0.75rem;">{{.UpdatedAt}}</td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 3rem; color: #64748b;">
+                                No tasks found. Add some to get started!
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Data Modal -->
+        <div id="modal" onclick="closeModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div class="modal-title" id="modal-title">Extracted Data</div>
+                    <button class="close-modal" onclick="document.getElementById('modal').style.display='none'">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <pre id="json-content" class="json-tree"></pre>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function showData(title, jsonStr) {
+                const modal = document.getElementById('modal');
+                const content = document.getElementById('json-content');
+                const titleEl = document.getElementById('modal-title');
+                
+                try {
+                    const data = JSON.parse(jsonStr);
+                    content.textContent = JSON.stringify(data, null, 2);
+                    titleEl.textContent = `Data for: ${title}`;
+                    modal.style.display = 'flex';
+                } catch (e) {
+                    console.error('Failed to parse JSON:', e);
+                }
+            }
+
+            function closeModal(e) {
+                if (e.target.id === 'modal') {
+                    document.getElementById('modal').style.display = 'none';
+                }
+            }
+
+            // Close on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.getElementById('modal').style.display = 'none';
+                }
+            });
+        </script>
+    </body>
+</html>

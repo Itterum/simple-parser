@@ -1,0 +1,22 @@
+services:
+  worker:
+    build:
+      context: ./services/worker
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: always
+
+  backend:
+    build:
+      context: ./services/backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./services/backend/templates:/app/templates
+    depends_on:
+      - worker
+    restart: always

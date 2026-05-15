@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"simple-parser/backend/internal/db"
+	"simple-parser/backend/internal/models"
+	"simple-parser/backend/internal/scheduler"
 )
 
 type ConfigTask struct {
@@ -32,23 +35,23 @@ func main() {
 	extractorFlag := flag.String("extractor", "", "Extractor name for single run")
 	urlFlag := flag.String("url", "", "URL for single run")
 	concurrencyFlag := flag.Int("concurrency", 2, "Number of concurrent tasks")
-	dbPathFlag := flag.String("db", "simple-parser.db", "Path to SQLite database")
+	dbPathFlag := flag.String("db", "data/simple-parser.db", "Path to SQLite database")
 	workerURLFlag := flag.String("worker", "http://localhost:3000", "Node.js worker URL")
-	tasksJSONFlag := flag.String("config", "tasks.json", "Path to tasks JSON config")
+	tasksJSONFlag := flag.String("config", "configs/tasks.json", "Path to tasks JSON config")
 	resetFlag := flag.Bool("reset", false, "Reset all tasks in DB to pending before starting")
 	refreshFlag := flag.Bool("refresh", false, "Reset tasks from tasks.json to pending even if they exist")
 	
 	flag.Parse()
 
-	db, err := initDB(*dbPathFlag)
+	database, err := db.InitDB(*dbPathFlag)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer database.Close()
 
 	if *resetFlag {
 		log.Println("Resetting all tasks in database to pending...")
-		if err := resetAllTasks(db); err != nil {
+		if err := db.ResetAllTasks(database); err != nil {
 			log.Fatalf("Failed to reset tasks: %v", err)
 		}
 	}
@@ -56,12 +59,12 @@ func main() {
 	// Mode 1: Single Run (CLI Mode)
 	if *extractorFlag != "" && *urlFlag != "" {
 		log.Printf("Running in Single Extraction mode: %s", *urlFlag)
-		task := Task{
+		task := models.Task{
 			TaskKey:       "cli-task",
 			URL:           *urlFlag,
 			ExtractorName: *extractorFlag,
 		}
-		resp, err := processTask(*workerURLFlag, task)
+		resp, err := scheduler.ProcessTask(*workerURLFlag, task)
 		if err != nil {
 			log.Fatalf("Extraction failed: %v", err)
 		}
@@ -86,19 +89,19 @@ func main() {
 			}
 			for _, url := range ct.URLs {
 				var exists bool
-				err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE task_key = ? AND url = ? AND extractor_name = ?)", ct.Name, url, ct.Extractor).Scan(&exists)
+				err := database.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE task_key = ? AND url = ? AND extractor_name = ?)", ct.Name, url, ct.Extractor).Scan(&exists)
 				if err == nil && !exists {
 					log.Printf("Adding task to queue: %s | %s (%s)", ct.Name, url, ct.Extractor)
-					addTask(db, ct.Name, url, ct.Extractor, schemaStr)
+					db.AddTask(database, ct.Name, url, ct.Extractor, schemaStr)
 				} else if *refreshFlag {
 					log.Printf("Refreshing task: %s | %s (%s)", ct.Name, url, ct.Extractor)
-					resetTask(db, ct.Name, url, ct.Extractor)
+					db.ResetTask(database, ct.Name, url, ct.Extractor)
 				}
 			}
 		}
 	}
 
-	startScheduler(db, *workerURLFlag, *concurrencyFlag)
+	scheduler.StartScheduler(database, *workerURLFlag, *concurrencyFlag)
 
 	log.Println("Orchestrator finished.")
 }

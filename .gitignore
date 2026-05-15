@@ -1,36 +1,30 @@
-# dependencies (bun install)
-node_modules
+# Dependencies
+node_modules/
+package-lock.json
+vendor/
 
-# output
-out
-dist
-*.tgz
+# Build outputs
+dist/
+bin/
+services/worker/dist/
+services/backend/bin/
 
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
-.idea
-
-# Finder (MacOS) folder config
-.DS_Store
+# Database
 *.db
-orchestrator/simple-parser-orchestrator
+*.db-journal
+*.db-wal
+data/*.db
+data/*.db-journal
+data/*.db-wal
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.*
