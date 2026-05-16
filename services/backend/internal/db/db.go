@@ -4,12 +4,40 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"simple-parser/backend/internal/config"
 	"simple-parser/backend/internal/models"
 
 	_ "modernc.org/sqlite"
 )
+
+func SyncTasks(db *sql.DB, configPath string, refresh bool) error {
+	configTasks, err := config.LoadTasksFromJSON(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	for _, ct := range configTasks {
+		schemaStr := ""
+		if ct.Schema != nil {
+			schemaStr = string(ct.Schema)
+		}
+		for _, url := range ct.URLs {
+			var exists bool
+			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE task_key = ? AND url = ? AND extractor_name = ?)", ct.Name, url, ct.Extractor).Scan(&exists)
+			if err == nil && !exists {
+				log.Printf("Adding task to queue: %s | %s (%s)", ct.Name, url, ct.Extractor)
+				AddTask(db, ct.Name, url, ct.Extractor, schemaStr)
+			} else if refresh {
+				log.Printf("Refreshing task: %s | %s (%s)", ct.Name, url, ct.Extractor)
+				ResetTask(db, ct.Name, url, ct.Extractor)
+			}
+		}
+	}
+	return nil
+}
 
 func InitDB(dataSourceName string) (*sql.DB, error) {
 	// Ensure the directory for the database file exists
@@ -121,15 +149,20 @@ func ResetFailedTasks(db *sql.DB) error {
 	return err
 }
 
+func DeleteTask(db *sql.DB, id int) error {
+	_, err := db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	return err
+}
+
 func GetMetrics(db *sql.DB) (models.Metrics, error) {
 	var m models.Metrics
 	err := db.QueryRow(`
 		SELECT 
 			COUNT(*),
-			SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END),
-			SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END),
-			SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END),
-			SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)
+			COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0)
 		FROM tasks
 	`).Scan(&m.TotalTasks, &m.PendingTasks, &m.ProcessingTasks, &m.CompletedTasks, &m.FailedTasks)
 	return m, err

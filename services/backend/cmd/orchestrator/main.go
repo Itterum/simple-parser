@@ -1,34 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"simple-parser/backend/internal/db"
 	"simple-parser/backend/internal/models"
 	"simple-parser/backend/internal/scheduler"
 )
-
-type ConfigTask struct {
-	Name      string          `json:"name"`
-	Extractor string          `json:"extractor"`
-	URLs      []string        `json:"urls"`
-	Schema    json.RawMessage `json:"schema,omitempty"`
-}
-
-func loadTasksFromJSON(path string) ([]ConfigTask, error) {
-	file, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var tasks []ConfigTask
-	if err := json.Unmarshal(file, &tasks); err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
 
 func main() {
 	// CLI Flags
@@ -76,29 +55,9 @@ func main() {
 		return
 	}
 
-	// Mode 2: Orchestrator Mode (Batch Mode)
-	configTasks, err := loadTasksFromJSON(*tasksJSONFlag)
-	if err != nil {
-		log.Printf("Warning: Failed to load %s: %v", *tasksJSONFlag, err)
-	} else {
-		log.Printf("Loaded %d task groups from %s", len(configTasks), *tasksJSONFlag)
-		for _, ct := range configTasks {
-			schemaStr := ""
-			if ct.Schema != nil {
-				schemaStr = string(ct.Schema)
-			}
-			for _, url := range ct.URLs {
-				var exists bool
-				err := database.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE task_key = ? AND url = ? AND extractor_name = ?)", ct.Name, url, ct.Extractor).Scan(&exists)
-				if err == nil && !exists {
-					log.Printf("Adding task to queue: %s | %s (%s)", ct.Name, url, ct.Extractor)
-					db.AddTask(database, ct.Name, url, ct.Extractor, schemaStr)
-				} else if *refreshFlag {
-					log.Printf("Refreshing task: %s | %s (%s)", ct.Name, url, ct.Extractor)
-					db.ResetTask(database, ct.Name, url, ct.Extractor)
-				}
-			}
-		}
+	// Mode 2: Sync and Run (Orchestrator Mode)
+	if err := db.SyncTasks(database, *tasksJSONFlag, *refreshFlag); err != nil {
+		log.Printf("Sync failed: %v", err)
 	}
 
 	scheduler.StartScheduler(database, *workerURLFlag, *concurrencyFlag)

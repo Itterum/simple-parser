@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"database/sql"
-	"html/template"
+	"encoding/json"
 	"log"
 	"net/http"
-	"path/filepath"
+	"strconv"
 	"sync"
 
 	"simple-parser/backend/internal/db"
@@ -21,20 +21,29 @@ type Server struct {
 	Store       *sessions.CookieStore
 	WorkerURL   string
 	TemplateDir string
+	ConfigPath  string
 	Count       int
 	Mu          sync.Mutex
 }
 
-func NewServer(database *sql.DB, store *sessions.CookieStore, workerURL, templateDir string) *Server {
+func NewServer(database *sql.DB, store *sessions.CookieStore, workerURL, templateDir, configPath string) *Server {
 	return &Server{
 		DB:          database,
 		Store:       store,
 		WorkerURL:   workerURL,
 		TemplateDir: templateDir,
+		ConfigPath:  configPath,
 	}
 }
 
-func (s *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
+// JSON Helper
+func (s *Server) jsonResponse(w http.ResponseWriter, data interface{}, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}
+
+func (s *Server) GetDashboardData(w http.ResponseWriter, r *http.Request) {
 	session, _ := s.Store.Get(r, "session-name")
 	username, ok := session.Values["username"].(string)
 	if !ok {
@@ -45,44 +54,50 @@ func (s *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error fetching tasks: %v", err)
 	}
-	log.Printf("Fetched %d tasks for dashboard", len(tasks))
 
 	metrics, err := db.GetMetrics(s.DB)
 	if err != nil {
 		log.Printf("Error fetching metrics: %v", err)
 	}
 
-	tmpl, err := template.ParseFiles(filepath.Join(s.TemplateDir, "index.html"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	tmpl.Execute(w, models.PageData{
+	s.jsonResponse(w, models.PageData{
 		Username: username,
 		Tasks:    tasks,
 		Metrics:  metrics,
-	})
+	}, http.StatusOK)
 }
 
-func (s *Server) RunTasksHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ApiSyncConfigHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Run scheduler in background
+	if err := db.SyncTasks(s.DB, s.ConfigPath, false); err != nil {
+		log.Printf("Error syncing config: %v", err)
+		s.jsonResponse(w, map[string]string{"error": "Failed to sync tasks"}, http.StatusInternalServerError)
+		return
+	}
+
+	s.jsonResponse(w, map[string]string{"message": "Config synchronized"}, http.StatusOK)
+}
+
+func (s *Server) ApiRunTasksHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	go func() {
 		log.Println("Starting background scheduler run...")
-		scheduler.StartScheduler(s.DB, s.WorkerURL, 5) // Default concurrency 5
+		scheduler.StartScheduler(s.DB, s.WorkerURL, 5)
 		log.Println("Background scheduler run finished.")
 	}()
 
-	// Return to index (HTMX will refresh)
-	w.Header().Set("HX-Trigger", "tasksUpdated")
-	s.IndexHandler(w, r)
+	s.jsonResponse(w, map[string]string{"message": "Processing started"}, http.StatusAccepted)
 }
 
-func (s *Server) ResetFailedHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ApiResetFailedHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -90,96 +105,109 @@ func (s *Server) ResetFailedHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.ResetFailedTasks(s.DB); err != nil {
 		log.Printf("Error resetting failed tasks: %v", err)
-		http.Error(w, "Failed to reset tasks", http.StatusInternalServerError)
+		s.jsonResponse(w, map[string]string{"error": "Failed to reset tasks"}, http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("HX-Trigger", "tasksUpdated")
-	s.IndexHandler(w, r)
+	s.jsonResponse(w, map[string]string{"message": "Failed tasks reset"}, http.StatusOK)
 }
 
-func (s *Server) ClickedHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+func (s *Server) ApiDeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	s.Mu.Lock()
-	s.Count++
-	currentCount := s.Count
-	s.Mu.Unlock()
-
-	tmpl, err := template.ParseFiles(filepath.Join(s.TemplateDir, "button.html"))
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.jsonResponse(w, map[string]string{"error": "Invalid task ID"}, http.StatusBadRequest)
 		return
 	}
 
-	tmpl.Execute(w, models.PageData{Count: currentCount})
+	if err := db.DeleteTask(s.DB, id); err != nil {
+		log.Printf("Error deleting task %d: %v", id, err)
+		s.jsonResponse(w, map[string]string{"error": "Failed to delete task"}, http.StatusInternalServerError)
+		return
+	}
+
+	s.jsonResponse(w, map[string]string{"message": "Task deleted"}, http.StatusOK)
 }
 
-func (s *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		tmpl, _ := template.ParseFiles(filepath.Join(s.TemplateDir, "register.html"))
-		tmpl.Execute(w, nil)
+func (s *Server) ApiRegisterHandler(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = s.DB.Exec("INSERT INTO users (username, password) VALUES (?, ?)", username, hashedPassword)
+	_, err = s.DB.Exec("INSERT INTO users (username, password) VALUES (?, ?)", creds.Username, hashedPassword)
 	if err != nil {
-		tmpl, _ := template.ParseFiles(filepath.Join(s.TemplateDir, "register.html"))
-		tmpl.Execute(w, models.PageData{Error: "Username already exists"})
+		s.jsonResponse(w, map[string]string{"error": "Username already exists"}, http.StatusConflict)
 		return
 	}
 
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	s.jsonResponse(w, map[string]string{"message": "User registered"}, http.StatusCreated)
 }
 
-func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		tmpl, _ := template.ParseFiles(filepath.Join(s.TemplateDir, "login.html"))
-		tmpl.Execute(w, nil)
+func (s *Server) ApiLoginHandler(w http.ResponseWriter, r *http.Request) {
+	var creds struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-
-	username := r.FormValue("username")
-	password := r.FormValue("password")
 
 	var dbPassword string
-	err := s.DB.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&dbPassword)
+	err := s.DB.QueryRow("SELECT password FROM users WHERE username = ?", creds.Username).Scan(&dbPassword)
 	if err != nil {
-		tmpl, _ := template.ParseFiles(filepath.Join(s.TemplateDir, "login.html"))
-		tmpl.Execute(w, models.PageData{Error: "Invalid username or password"})
+		s.jsonResponse(w, map[string]string{"error": "Invalid credentials"}, http.StatusUnauthorized)
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(creds.Password))
 	if err != nil {
-		tmpl, _ := template.ParseFiles(filepath.Join(s.TemplateDir, "login.html"))
-		tmpl.Execute(w, models.PageData{Error: "Invalid username or password"})
+		s.jsonResponse(w, map[string]string{"error": "Invalid credentials"}, http.StatusUnauthorized)
 		return
 	}
 
 	session, _ := s.Store.Get(r, "session-name")
 	session.Values["authenticated"] = true
-	session.Values["username"] = username
+	session.Values["username"] = creds.Username
 	session.Save(r, w)
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	s.jsonResponse(w, map[string]string{"message": "Logged in", "username": creds.Username}, http.StatusOK)
 }
 
-func (s *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ApiLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := s.Store.Get(r, "session-name")
 	session.Values["authenticated"] = false
 	session.Save(r, w)
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	s.jsonResponse(w, map[string]string{"message": "Logged out"}, http.StatusOK)
+}
+
+func (s *Server) ApiStatusHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := s.Store.Get(r, "session-name")
+	auth, ok := session.Values["authenticated"].(bool)
+	if !ok || !auth {
+		s.jsonResponse(w, map[string]interface{}{"authenticated": false}, http.StatusOK)
+		return
+	}
+	username := session.Values["username"].(string)
+	s.jsonResponse(w, map[string]interface{}{"authenticated": true, "username": username}, http.StatusOK)
 }

@@ -10,13 +10,13 @@ services:
 
   backend:
     build:
-      context: ./services/backend
+      context: .
+      dockerfile: services/backend/Dockerfile
     ports:
       - "8080:8080"
     volumes:
       - ./data:/app/data
       - ./configs:/app/configs
-      - ./services/backend/templates:/app/templates
     depends_on:
       - worker
     restart: always

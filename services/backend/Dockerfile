@@ -1,40 +1,36 @@
-# Stage 1: Build binaries
-FROM golang:alpine AS builder
-
-RUN apk add --no-cache git
-
+# Stage 1: Build React Frontend
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app
+COPY services/frontend/package*.json ./
+RUN npm install
+COPY services/frontend/ ./
+RUN npm run build
 
-# Copy go mod and sum files
-COPY go.mod go.sum ./
+# Stage 2: Build Go binaries
+FROM golang:alpine AS builder
+RUN apk add --no-cache git
+WORKDIR /app
+COPY services/backend/go.mod services/backend/go.sum ./
 RUN go mod download
-
-# Copy source code
-COPY . .
-
-# Ensure go.mod is consistent
+COPY services/backend/ ./
 RUN go mod tidy
-
-# Build binaries
 RUN go build -o dashboard ./cmd/dashboard
 RUN go build -o orchestrator ./cmd/orchestrator
 
-# Stage 2: Run
+# Stage 3: Run
 FROM alpine:latest
-
 RUN apk add --no-cache ca-certificates tzdata bash
-
 WORKDIR /app
 
-# Copy binaries from builder
+# Copy binaries
 COPY --from=builder /app/dashboard /app/dashboard
 COPY --from=builder /app/orchestrator /app/orchestrator
 
-# Copy templates
-COPY templates ./templates
+# Copy static frontend files
+COPY --from=frontend-builder /app/dist ./public
 
 # Copy start script
-COPY start.sh ./start.sh
+COPY services/backend/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
 # Directories for bind mounts

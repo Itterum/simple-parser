@@ -6,4 +6,5 @@ echo "Starting orchestrator..."
 
 # Start dashboard in the foreground
 echo "Starting dashboard..."
-exec ./dashboard -templates ./templates -db data/simple-parser.db -worker http://worker:3000
+# No more -templates flag, using -public instead
+exec ./dashboard -config configs/tasks.json -db data/simple-parser.db -worker http://worker:3000 -public public

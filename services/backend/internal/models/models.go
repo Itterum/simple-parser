@@ -1,6 +1,9 @@
 package models
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type User struct {
 	ID       int    `json:"id"`
@@ -22,9 +25,24 @@ type Task struct {
 }
 
 // ResultString returns the result as a string for template rendering.
-// json.RawMessage renders as a byte array by default in templates.
 func (t Task) ResultString() string {
 	return string(t.Result)
+}
+
+// FormattedDate converts the SQLite timestamp to a more readable format.
+func (t Task) FormattedDate() string {
+	// SQLite default format is 2006-01-02 15:04:05 or ISO
+	layout := "2006-01-02T15:04:05Z"
+	parsed, err := time.Parse(layout, t.UpdatedAt)
+	if err != nil {
+		// Try alternative SQLite format
+		layoutAlt := "2006-01-02 15:04:05"
+		parsed, err = time.Parse(layoutAlt, t.UpdatedAt)
+		if err != nil {
+			return t.UpdatedAt // Return raw if parsing fails
+		}
+	}
+	return parsed.Format("02 Jan, 15:04")
 }
 
 type Metrics struct {
